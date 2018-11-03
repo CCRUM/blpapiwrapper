@@ -25,7 +25,8 @@ SECURITY_DATA    = blpapi.Name("securityData")
 ################################################
 class BLP():
     """Naive implementation of the Request/Response Paradigm closely matching the Excel API.
-    Sharing one session for subsequent requests is faster, however it is not thread-safe, as some events can come faster than others.
+    Sharing one session for subsequent requests is faster, however it is not thread-safe, 
+    as some events can come faster than others.
     bdp returns a string, bdh returns a pandas DataFrame.
     This is mostly useful for scripting, but care should be taken when used in a real world application.
     """
@@ -55,7 +56,11 @@ class BLP():
             if event.eventType() == blpapi.event.Event.RESPONSE:
                 break
         try:
-            output = blpapi.event.MessageIterator(event).next().getElement(SECURITY_DATA).getValueAsElement(0).getElement(FIELD_DATA).getElementAsString(strData)
+            output = blpapi.event.MessageIterator(event).next() \
+                                 .getElement(SECURITY_DATA) \
+                                 .getValueAsElement(0) \
+                                 .getElement(FIELD_DATA) \
+                                 .getElementAsString(strData)
             if output == '#N/A':
                 output = pandas.np.nan
         except:
@@ -63,7 +68,8 @@ class BLP():
             output = pandas.np.nan
         return output
 
-    def bdh(self, strSecurity='SPX Index', strData='PX_LAST', startdate=datetime.date(2014, 1, 1), enddate=datetime.date(2014, 1, 9), adjustmentSplit=False, periodicity='DAILY'):
+    def bdh(self, strSecurity='SPX Index', strData='PX_LAST', startdate=datetime.date(2014, 1, 1), 
+            enddate=datetime.date(2014, 1, 9), adjustmentSplit=False, periodicity='DAILY'):
         request = self.refDataSvc.createRequest('HistoricalDataRequest')
         request.append('securities', strSecurity)
         if type(strData) == str:
@@ -116,7 +122,8 @@ class BLP():
         
         return pandas.DataFrame(data)
 
-    def bdhOHLC(self, strSecurity='SPX Index', startdate=datetime.date(2014, 1, 1), enddate=datetime.date(2014, 1, 9), periodicity='DAILY'):
+    def bdhOHLC(self, strSecurity='SPX Index', startdate=datetime.date(2014, 1, 1), enddate=datetime.date(2014, 1, 9), 
+                periodicity='DAILY'):
         return self.bdh(strSecurity, ['PX_OPEN', 'PX_HIGH', 'PX_LOW', 'PX_LAST'], startdate, enddate, periodicity)
 
     def closeSession(self):
@@ -133,7 +140,8 @@ class BLPTS():
     Examples:
     BLPTS(['ESA Index', 'VGA Index'], ['BID', 'ASK'])
     BLPTS('US900123AL40 Govt','YLD_YTM_BID',strOverrideField='PX_BID',strOverrideValue='200')
-    BLPTS(['SPX Index','SX5E Index','EUR Curncy'],['PX_LAST','VOLUME'],startDate=datetime.datetime(2014,1,1),endDate=datetime.datetime(2015,5,14),periodicity='DAILY')
+    BLPTS(['SPX Index','SX5E Index','EUR Curncy'],['PX_LAST','VOLUME'],startDate=datetime.datetime(2014,1,1),
+          endDate=datetime.datetime(2015,5,14),periodicity='DAILY')
     """
 
     def __init__(self, securities=[], fields=[], **kwargs):
@@ -141,7 +149,8 @@ class BLPTS():
         Keyword arguments:
         securities : list of ISINS 
         fields : list of fields 
-        kwargs : startDate and endDate (datetime.datetime object, note: hours, minutes, seconds, and microseconds must be replaced by 0)
+        kwargs : startDate and endDate (datetime.datetime object, note: hours, minutes, seconds, 
+                 and microseconds must be replaced by 0)
         """
         self.session    = blpapi.Session()
         self.session.start()
@@ -159,7 +168,8 @@ class BLPTS():
         keyword arguments:
         securities : list of ISINS
         fields : list of fields 
-        kwargs : startDate and endDate (datetime.datetime object, note: hours, minutes, seconds, and microseconds must be replaced by 0)
+        kwargs : startDate and endDate (datetime.datetime object, note: hours, minutes, seconds, 
+                 and microseconds must be replaced by 0)
         """
         self.kwargs = kwargs
 
@@ -205,7 +215,8 @@ class BLPTS():
         """
         securities : list of ISINS 
         fields : list of fields 
-        kwargs : startDate and endDate (datetime.datetime object, note: hours, minutes, seconds, and microseconds must be replaced by 0)
+        kwargs : startDate and endDate (datetime.datetime object, note: hours, minutes, seconds, 
+                 and microseconds must be replaced by 0)
         """
 
         if len(newSecurities) > 0 or len(newFields) > 0:
@@ -256,7 +267,8 @@ class BLPTS():
                             self.output.loc[security, field] = outData
                             
                         if n_elmts>0:
-                            self.updateObservers(security=security, field='ALL', data=self.output.loc[security]) # update one security all fields
+                            # update one security all fields
+                            self.updateObservers(security=security, field='ALL', data=self.output.loc[security])
                         else:
                             print('Empty response received for ' + security)
 
@@ -287,13 +299,15 @@ class BLPTS():
 class BLPStream(threading.Thread):
     """The Subscription Paradigm
     The subscribed data will be sitting in self.output and update automatically. Observers will be notified.
-    floatInterval is the minimum amount of time before updates - sometimes needs to be set at 0 for things to work properly. In seconds.
+    floatInterval is the minimum amount of time before updates - sometimes needs to be set at 0 for things 
+    to work properly. In seconds.
     intCorrID is a user defined ID for the request
     It is sometimes safer to ask for each data (for instance BID and ASK) in a separate stream.
     Note that for corporate bonds, a change in the ASK price will still trigger a BID event.
     """
 
-    def __init__(self, strSecurityList=['ESM5 Index', 'VGM5 Index'], strDataList=['BID', 'ASK'], floatInterval=0, intCorrIDList=[0, 1]):
+    def __init__(self, strSecurityList=['ESM5 Index', 'VGM5 Index'], strDataList=['BID', 'ASK'], 
+                 floatInterval=0, intCorrIDList=[0, 1]):
         threading.Thread.__init__(self)
         self.session = blpapi.Session()
         self.session.start()
@@ -319,7 +333,8 @@ class BLPStream(threading.Thread):
 
         self.subscriptionList = blpapi.subscriptionlist.SubscriptionList()
         for (security, intCorrID) in zip(self.strSecurityList, self.intCorrIDList):
-            self.subscriptionList.add(security, self.strDataList, "interval="+str(floatInterval), blpapi.CorrelationId(intCorrID))
+            self.subscriptionList.add(security, self.strDataList, "interval="+str(floatInterval), 
+                                      blpapi.CorrelationId(intCorrID))
 
         self.output               = pandas.DataFrame(index=self.strSecurityList, columns=self.strDataList)
         self.dictCorrID           = dict(zip(self.intCorrIDList, self.strSecurityList))
@@ -371,12 +386,15 @@ class BLPStream(threading.Thread):
                     data = output.getElement(field).getValueAsFloat()
                 except:
                     data = pandas.np.nan
-                    print('error: ',security,field)#,output.getElement(field).getValueAsString() # this can still error if field is there but is empty
+                    # this can still error if field is there but is empty
+                    print('error: ',security,field)#,output.getElement(field).getValueAsString() 
                 self.output.loc[security, field] = data
-                self.updateObservers(time=self.lastUpdateTime, security=security, field=field, corrID=corrID, data=data, bbgTime=self.lastUpdateTimeBlmbrg)
+                self.updateObservers(time=self.lastUpdateTime, security=security, field=field, 
+                                     corrID=corrID, data=data, bbgTime=self.lastUpdateTimeBlmbrg)
          
         # It can happen that you get an event without the data behind the event!
-        self.updateObservers(time=self.lastUpdateTime, security=security, field='ALL', corrID=corrID, data=0, bbgTime=self.lastUpdateTimeBlmbrg)
+        self.updateObservers(time=self.lastUpdateTime, security=security, field='ALL', corrID=corrID, 
+                             data=0, bbgTime=self.lastUpdateTimeBlmbrg)
         # if not isParsed:
         #     print(output.toString())
 
@@ -434,7 +452,8 @@ class HistoryWatcher(Observer):
         self.outputDC={}
     def update(self, *args, **kwargs):
         if kwargs['field']!='ALL':
-            self.outputDC[(kwargs['security'],kwargs['field'])]=kwargs['data'][[kwargs['field']]]#double brackets keep it a dataframe, not a series
+            #double brackets keep it a dataframe, not a series
+            self.outputDC[(kwargs['security'],kwargs['field'])]=kwargs['data'][[kwargs['field']]]
 
 
 def simpleReferenceDataRequest(id_to_ticker_dic, fields):
@@ -453,10 +472,12 @@ def simpleReferenceDataRequest(id_to_ticker_dic, fields):
     return blpts.output.copy()
 
 
-def simpleHistoryRequest(securities=[], fields=[], startDate=datetime.datetime(2015,1,1), endDate=datetime.datetime(2016,1,1), periodicity='DAILY'):
+def simpleHistoryRequest(securities=[], fields=[], startDate=datetime.datetime(2015,1,1), 
+                         endDate=datetime.datetime(2016,1,1), periodicity='DAILY'):
     '''
     Convenience function to retrieve historical data for a list of securities and fields
-    As returned data can have different length, missing data will be replaced with pandas.np.nan (note it's already taken care of in one security several fields)
+    As returned data can have different length, missing data will be replaced with pandas.np.nan 
+    (note it's already taken care of in one security several fields)
     If multiple securities and fields, a MultiIndex dataframe will be returned.
     '''
     blpts=BLPTS(securities, fields, startDate=startDate, endDate=endDate, periodicity=periodicity)
@@ -491,7 +512,8 @@ def excelEmulationExample():
 
 class ObserverStreamExample(Observer):
     def update(self, *args, **kwargs):
-        output = kwargs['time'].strftime("%Y-%m-%d %H:%M:%S") + ' received ' + kwargs['security'] + ' ' + kwargs['field'] + '=' + str(kwargs['data'])
+        output = kwargs['time'].strftime("%Y-%m-%d %H:%M:%S") + ' received ' + kwargs['security'] \
+                 + ' ' + kwargs['field'] + '=' + str(kwargs['data'])
         output = output + '. CorrID '+str(kwargs['corrID']) + ' bbgTime ' + kwargs['bbgTime']
         print(output)
 
